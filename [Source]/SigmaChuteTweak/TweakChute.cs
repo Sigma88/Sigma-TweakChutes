@@ -1,6 +1,6 @@
 ﻿namespace SigmaTweakChutesPlugin
 {
-    public class TweakChute : ModuleParachute
+    public class TweakChute : PartModule
     {
         [KSPField]
         public float altitudeSliderMin = 50f;
@@ -16,42 +16,58 @@
         [KSPField]
         public float pressureSliderStep = 0.01f;
 
-        protected override void FixedUpdate()
+        float temp = -1;
+
+        void EarlyFixedUpdate()
         {
-            if (deploymentState == deploymentStates.SEMIDEPLOYED)
+            ModuleParachute MP = GetComponent<ModuleParachute>();
+            if (MP.deploymentState == ModuleParachute.deploymentStates.ACTIVE)
             {
-                base.FixedUpdate();
+                temp = MP.deployAltitude;
+                MP.deployAltitude = 0;
             }
-            else
+        }
+
+        void LateFixedUpdate()
+        {
+            ModuleParachute MP = GetComponent<ModuleParachute>();
+            if (temp >= 0)
             {
-                float temp = deployAltitude;
-                deployAltitude = 0;
-                base.FixedUpdate();
-                deployAltitude = temp;
+                MP.deployAltitude = temp;
+                temp = -1;
             }
         }
 
         public override void OnStart(StartState state)
         {
-            UI_FloatRange uI_Altitude = (UI_FloatRange)(Fields)["deployAltitude"].uiControlFlight;
-            UI_FloatRange uI_Pressure = (UI_FloatRange)(Fields)["minAirPressureToOpen"].uiControlFlight;
+            TimingManager.FixedUpdateAdd(TimingManager.TimingStage.Early, EarlyFixedUpdate);
+            TimingManager.FixedUpdateAdd(TimingManager.TimingStage.Late, LateFixedUpdate);
+
+            ModuleParachute MP = GetComponent<ModuleParachute>();
+
+            UI_FloatRange uI_Altitude = (UI_FloatRange)(MP.Fields)["deployAltitude"].uiControlFlight;
+            UI_FloatRange uI_Pressure = (UI_FloatRange)(MP.Fields)["minAirPressureToOpen"].uiControlFlight;
 
             if (HighLogic.LoadedScene == GameScenes.EDITOR)
             {
-                uI_Altitude = (UI_FloatRange)(Fields)["deployAltitude"].uiControlEditor;
-                uI_Pressure = (UI_FloatRange)(Fields)["minAirPressureToOpen"].uiControlEditor;
+                uI_Altitude = (UI_FloatRange)(MP.Fields)["deployAltitude"].uiControlEditor;
+                uI_Pressure = (UI_FloatRange)(MP.Fields)["minAirPressureToOpen"].uiControlEditor;
             }
 
             uI_Altitude.minValue = altitudeSliderMin;
             uI_Altitude.maxValue = altitudeSliderMax;
             uI_Altitude.stepIncrement = altitudeSliderStep;
 
-            clampMinAirPressure = pressureSliderMin >= 0 ? pressureSliderMin : clampMinAirPressure;
-            uI_Pressure.minValue = pressureSliderMin >= 0 ? pressureSliderMin : clampMinAirPressure;
+            MP.clampMinAirPressure = pressureSliderMin >= 0 ? pressureSliderMin : MP.clampMinAirPressure;
+            uI_Pressure.minValue = pressureSliderMin >= 0 ? pressureSliderMin : MP.clampMinAirPressure;
             uI_Pressure.maxValue = pressureSliderMax;
             uI_Pressure.stepIncrement = pressureSliderStep;
+        }
 
-            base.OnStart(state);
+        public void OnDestroy()
+        {
+            TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Early, EarlyFixedUpdate);
+            TimingManager.FixedUpdateRemove(TimingManager.TimingStage.Late, LateFixedUpdate);
         }
     }
 }
