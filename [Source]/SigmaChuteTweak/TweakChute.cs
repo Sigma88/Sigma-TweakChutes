@@ -17,11 +17,11 @@
         public float pressureSliderStep = 0.01f;
 
         float temp = -1;
+        ModuleParachute MP;
 
         void EarlyFixedUpdate()
         {
-            ModuleParachute MP = GetComponent<ModuleParachute>();
-            if (MP.deploymentState == ModuleParachute.deploymentStates.ACTIVE)
+            if (MP?.deploymentState == ModuleParachute.deploymentStates.ACTIVE)
             {
                 temp = MP.deployAltitude;
                 MP.deployAltitude = 0;
@@ -30,8 +30,7 @@
 
         void LateFixedUpdate()
         {
-            ModuleParachute MP = GetComponent<ModuleParachute>();
-            if (temp >= 0)
+            if (temp >= 0 && MP != null)
             {
                 MP.deployAltitude = temp;
                 temp = -1;
@@ -40,10 +39,10 @@
 
         public override void OnStart(StartState state)
         {
+            MP = GetComponent<ModuleParachute>();
+
             TimingManager.FixedUpdateAdd(TimingManager.TimingStage.Early, EarlyFixedUpdate);
             TimingManager.FixedUpdateAdd(TimingManager.TimingStage.Late, LateFixedUpdate);
-
-            ModuleParachute MP = GetComponent<ModuleParachute>();
 
             UI_FloatRange uI_Altitude = (UI_FloatRange)(MP.Fields)["deployAltitude"].uiControlFlight;
             UI_FloatRange uI_Pressure = (UI_FloatRange)(MP.Fields)["minAirPressureToOpen"].uiControlFlight;
@@ -62,6 +61,8 @@
             uI_Pressure.minValue = pressureSliderMin >= 0 ? pressureSliderMin : MP.clampMinAirPressure;
             uI_Pressure.maxValue = pressureSliderMax;
             uI_Pressure.stepIncrement = pressureSliderStep;
+
+            base.OnStart(state);
         }
 
         public void OnDestroy()
