@@ -4,8 +4,6 @@
 **The Chute Tweaking Mod for KSP**
 
 
-### Links
-
 - [Releases](https://github.com/Sigma88/Sigma-TweakChutes/releases)
 - [ChangeLog](https://raw.githubusercontent.com/Sigma88/Sigma-TweakChutes/master/Changelog.txt)
 
